@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import random
 from datetime import datetime, timedelta
 
 # ==========================================
@@ -49,37 +50,103 @@ def init_db():
     seed_if_empty()
 
 def seed_if_empty():
-    """Seeds the database with initial data if the stores table is empty."""
+    """Seeds the database with full synthetic demo data if the purchases table is empty."""
     conn = get_db_connection()
-    count = conn.execute('SELECT COUNT(*) FROM stores').fetchone()[0]
-    
-    if count == 0:
-        print("Database is empty. Running automatic seeding...")
-        try:
-            # We can import the logic or just run the script if it exists
-            # For simplicity and reliability on Render, we'll try to import and run
-            # or just add a simple seeding here.
-            # Let's import the catalog from seed_data if possible, 
-            # but since it's in the root, we might need a different approach.
-            # To keep db.py self-contained for deployment, let's add minimal seeding here.
-            
-            _run_minimal_seed(conn)
-            print("Automatic seeding successful.")
-        except Exception as e:
-            print(f"Warning: Automatic seeding failed: {e}")
-    
-    conn.close()
+    try:
+        # Check if we have any purchases. If not, we assume a fresh deploy.
+        count = conn.execute('SELECT COUNT(*) FROM purchases').fetchone()[0]
+        
+        if count == 0:
+            print("--- Fresh Deployment Detected ---")
+            print("Starting automatic demonstration data seeding...")
+            _seed_demo_data(conn)
+    except Exception as e:
+        print(f"Error during database check/seeding: {e}")
+    finally:
+        conn.close()
 
-def _run_minimal_seed(conn):
-    """Internal helper to populate initial categories and stores."""
-    stores = ["Whole Foods", "Trader Joe's", "Safeway", "Costco", "Local Market"]
-    categories = ["Produce", "Dairy", "Bakery", "Meat", "Pantry", "Frozen", "Household"]
-    
-    for s in stores:
-        conn.execute('INSERT OR IGNORE INTO stores (name) VALUES (?)', (s,))
-    for c in categories:
-        conn.execute('INSERT OR IGNORE INTO categories (name) VALUES (?)', (c,))
-    conn.commit()
+def _seed_demo_data(conn):
+    """
+    Populates the database with a full set of realistic grocery data.
+    Follows correct insertion order to respect foreign keys.
+    """
+    try:
+        # 1. Define Data Sets
+        stores_list = ["Whole Foods", "Trader Joe's", "Safeway", "Costco", "Walmart", "Aldi", "Farmers Market"]
+        categories_catalog = {
+            "Produce": ["Organic Bananas", "Honeycrisp Apples", "Avocados", "Spinach", "Tomatoes"],
+            "Dairy": ["Whole Milk", "Large Eggs", "Greek Yogurt", "Cheddar Cheese", "Butter"],
+            "Bakery": ["Sourdough Bread", "Bagels", "Croissants", "Chocolate Chip Cookies"],
+            "Meat": ["Chicken Breast", "Ground Beef", "Salmon Fillet", "Bacon"],
+            "Pantry": ["Olive Oil", "Pasta Sauce", "Spaghetti", "Rice", "Peanut Butter"],
+            "Frozen": ["Frozen Pizza", "Ice Cream", "Frozen Veggies", "Waffles"],
+            "Household": ["Paper Towels", "Laundry Detergent", "Dish Soap"]
+        }
+
+        # 2. Insert Stores
+        store_ids = []
+        for s in stores_list:
+            cursor = conn.execute('INSERT OR IGNORE INTO stores (name) VALUES (?)', (s,))
+            # If ignore happened, we need to fetch the existing ID
+            if cursor.rowcount == 0:
+                res = conn.execute('SELECT id FROM stores WHERE name = ?', (s,)).fetchone()
+                store_ids.append(res[0])
+            else:
+                store_ids.append(cursor.lastrowid)
+
+        # 3. Insert Categories and Products
+        product_ids = []
+        for cat_name, products in categories_catalog.items():
+            # Insert Category
+            cursor = conn.execute('INSERT OR IGNORE INTO categories (name) VALUES (?)', (cat_name,))
+            if cursor.rowcount == 0:
+                res = conn.execute('SELECT id FROM categories WHERE name = ?', (cat_name,)).fetchone()
+                cat_id = res[0]
+            else:
+                cat_id = cursor.lastrowid
+            
+            # Insert Products for this Category
+            for prod_name in products:
+                cursor = conn.execute('INSERT OR IGNORE INTO products (name, category_id) VALUES (?, ?)', 
+                                    (prod_name, cat_id))
+                if cursor.rowcount == 0:
+                    res = conn.execute('SELECT id FROM products WHERE name = ? AND category_id = ?', 
+                                     (prod_name, cat_id)).fetchone()
+                    product_ids.append(res[0])
+                else:
+                    product_ids.append(cursor.lastrowid)
+
+        # 4. Insert Purchases (Synthetic History)
+        # Generate ~150 purchases across the last 6 months
+        print(f"Generating synthetic purchase history...")
+        for _ in range(150):
+            p_id = random.choice(product_ids)
+            s_id = random.choice(store_ids)
+            price = round(random.uniform(2.50, 35.00), 2)
+            
+            # Random date within last 180 days
+            days_ago = random.randint(0, 180)
+            p_date = (datetime.now() - timedelta(days=days_ago)).strftime('%Y-%m-%d')
+            
+            conn.execute('''
+                INSERT INTO purchases (product_id, store_id, price, purchase_date)
+                VALUES (?, ?, ?, ?)
+            ''', (p_id, s_id, price, p_date))
+
+        conn.commit()
+
+        # 5. Final Summary Logging
+        print("--- Seeding Summary ---")
+        print(f"Stores inserted:     {len(stores_list)}")
+        print(f"Categories inserted: {len(categories_catalog)}")
+        print(f"Products inserted:   {len(product_ids)}")
+        print(f"Purchases inserted:  150")
+        print("-----------------------")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"CRITICAL: Demo data seeding failed: {e}")
+        raise e
 
 
 
