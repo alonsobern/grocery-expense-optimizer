@@ -1,4 +1,5 @@
 from flask import Flask
+from app.db import init_db
 
 def create_app():
     """
@@ -10,7 +11,7 @@ def create_app():
     
     # Initialize the database on startup
     with app.app_context():
-        db.init_db()
+        init_db()
     
     # Register the routes blueprint
     from .routes import main_bp
