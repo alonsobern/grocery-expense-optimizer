@@ -6,24 +6,81 @@ from datetime import datetime, timedelta
 # DATABASE CONNECTION & CONFIGURATION
 # ==========================================
 
+def get_db_path():
+    """Returns the absolute path to the SQLite database file."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_dir, 'database', 'grocery.db')
+
 def get_db_connection():
     """
     Establishes a connection to the SQLite database.
-    
-    Returns:
-        sqlite3.Connection: A connection object to the database.
     """
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    db_path = os.path.join(base_dir, 'database', 'grocery.db')
+    db_path = get_db_path()
+    
+    # Ensure the directory exists (important for Render/Docker)
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    
-    # Enable foreign key constraints (disabled by default in SQLite)
-    # Required to enforce relationships between tables (e.g. Products -> Categories)
     conn.execute('PRAGMA foreign_keys = ON;')
-    
     return conn
+
+def init_db():
+    """
+    Initializes the database by creating tables if they don't exist.
+    Runs on application startup.
+    """
+    db_path = get_db_path()
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    schema_path = os.path.join(base_dir, 'database', 'schema.sql')
+    
+    # 1. Ensure directory exists
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    
+    # 2. Execute schema.sql
+    print(f"Initializing database at {db_path}...")
+    conn = get_db_connection()
+    with open(schema_path, 'r') as f:
+        conn.executescript(f.read())
+    conn.commit()
+    conn.close()
+    
+    # 3. Optional: Seed if empty
+    seed_if_empty()
+
+def seed_if_empty():
+    """Seeds the database with initial data if the stores table is empty."""
+    conn = get_db_connection()
+    count = conn.execute('SELECT COUNT(*) FROM stores').fetchone()[0]
+    
+    if count == 0:
+        print("Database is empty. Running automatic seeding...")
+        try:
+            # We can import the logic or just run the script if it exists
+            # For simplicity and reliability on Render, we'll try to import and run
+            # or just add a simple seeding here.
+            # Let's import the catalog from seed_data if possible, 
+            # but since it's in the root, we might need a different approach.
+            # To keep db.py self-contained for deployment, let's add minimal seeding here.
+            
+            _run_minimal_seed(conn)
+            print("Automatic seeding successful.")
+        except Exception as e:
+            print(f"Warning: Automatic seeding failed: {e}")
+    
+    conn.close()
+
+def _run_minimal_seed(conn):
+    """Internal helper to populate initial categories and stores."""
+    stores = ["Whole Foods", "Trader Joe's", "Safeway", "Costco", "Local Market"]
+    categories = ["Produce", "Dairy", "Bakery", "Meat", "Pantry", "Frozen", "Household"]
+    
+    for s in stores:
+        conn.execute('INSERT OR IGNORE INTO stores (name) VALUES (?)', (s,))
+    for c in categories:
+        conn.execute('INSERT OR IGNORE INTO categories (name) VALUES (?)', (c,))
+    conn.commit()
+
 
 
 # ==========================================
