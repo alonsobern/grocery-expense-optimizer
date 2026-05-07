@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Grocery App{% endblock %}</title>
+    <!-- Use Google Fonts for a premium look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js - A JavaScript library for creating charts and graphs. -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* Minimalist Dark Mode Palette */
+            --primary-color: #3b82f6;
+            --primary-hover: #60a5fa;
+            --background-color: #0f172a;
+            --card-background: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Centered Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Navigation Bar */
+        nav {
+            background-color: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 4.5rem;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .brand span {
+            color: var(--primary-color);
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 2rem;
+        }
+
+        nav a.nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        nav a.nav-link:hover {
+            color: var(--text-main);
+        }
+        
+        /* Subtle underline hover effect */
+        nav a.nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: var(--primary-color);
+            transition: width 0.25s ease;
+        }
+
+        nav a.nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Main Content Spacing */
+        main {
+            padding: 2.5rem 0;
+            min-height: calc(100vh - 4.5rem - 100px); /* Fill screen minus nav/footer */
+        }
+
+        /* Consistent Section Alignment */
+        section {
+            margin-bottom: 2.5rem;
+        }
+
+        section:last-of-type {
+            margin-bottom: 18px;
+        }
+        
+        /* Typography */
+        h1, h2, h3 {
+            color: var(--text-main);
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-top: 0;
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-background);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dashboard & Layout Utilities */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            letter-spacing: 0.025em;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: var(--card-background);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .kpi-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        /* Forms */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            letter-spacing: 0.01em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            font-size: 1rem;
+            background-color: #0d1323; /* Very dark input background */
+            color: var(--text-main);
+            font-family: inherit;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Fix for select dropdown text forcing white on some browsers */
+        select option {
+            background-color: var(--card-background);
+            color: var(--text-main);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-hover);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), inset 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #121a2f;
+        }
+
+        /* DATE FIX */
+        input[type="date"] {
+            min-width: 120px;
+            white-space: nowrap;
+        }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 10px; /* Slightly rounder to match cards */
+            border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separator */
+            background-color: var(--card-background);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            table-layout: fixed; /* Enforce fixed column widths */
+            word-wrap: break-word; /* Prevent content overflow */
+        }
+
+        .app-table th {
+            background-color: rgba(255, 255, 255, 0.05); /* Slightly lighter background */
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 1.25rem 1.5rem; /* Better padding for readability */
+            text-align: left;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1); /* Clearer separation */
+        }
+
+        .app-table td {
+            padding: 0.75rem 1rem; /* Compact padding to keep rows stable */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Subtle border */
+            color: var(--text-main);
+            transition: background-color 0.2s ease;
+            vertical-align: middle; /* Aligns text and inputs vertically */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 48px; /* Fixed height to prevent expanding */
+        }
+
+        /* INPUTS + SELECTS */
+        .app-table td input,
+        .app-table td select {
+            width: 100%;
+            height: 32px;
+            padding: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        /* ACTIONS COLUMN */
+        .app-table td.actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+        }
+
+        .app-table td.actions button {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        /* Alternating row colors */
+        .app-table tr:nth-child(even) td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .app-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .app-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.06); /* Stronger hover effect */
+        }
+
+        /* Global styles end here. Table specific widths are handled in their respective templates. */
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.06); /* Stronger hover effect */
+        }
+
+        /* Action Buttons Cell Container */
+        .actions-cell {
+            display: flex;
+            justify-content: flex-end; /* Align buttons to the right */
+            align-items: center; /* Center buttons vertically */
+            gap: 0.4rem; /* Consistent spacing between buttons */
+            overflow: visible !important; /* Buttons should never be hidden by text-overflow */
+            white-space: nowrap; /* Prevent button wrapping */
+        }
+
+        .actions-cell button {
+            flex-shrink: 0; /* Never allow buttons to shrink or squish */
+        }
+
+        .actions-cell form {
+            margin: 0;
+            padding: 0;
+            display: inline-flex; /* Ensures form doesn't break flex layout */
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            padding: 0.875rem 1.75rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: none;
+        }
+        
+        input:invalid, select:invalid {
+            border-color: var(--danger);
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .is-invalid .error-message {
+            display: block;
+        }
+
+        .inline-edit-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .inline-error {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            z-index: 10;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Inline Editing UX Improvements */
+        .editing-row td {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            /* Explicitly rely on standard border to prevent misalignment */
+        }
+
+        /* Prevent duplicates. */
+
+        /* Circular Icon Buttons */
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid transparent;
+            background-color: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            transition: all 0.2s ease;
+        }
+
+        .icon-edit { color: var(--primary-hover); }
+        .icon-edit:hover { background-color: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+        
+        .icon-save { color: var(--accent); }
+        .icon-save:hover { background-color: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+        
+        .icon-cancel { color: var(--text-muted); }
+        .icon-cancel:hover { background-color: rgba(148, 163, 184, 0.15); border-color: rgba(148, 163, 184, 0.3); }
+        
+        .icon-delete { color: #fca5a5; }
+        .icon-delete:hover { background-color: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); }
+
+        tbody.is-editing tr:not(.editing-row) {
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-save {
+            border-color: #10b981 !important;
+            color: #34d399 !important;
+        }
+
+        .btn-save:hover {
+            background-color: rgba(16, 185, 129, 0.2) !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3) !important;
+        }
+
+        .btn-cancel {
+            border-color: #94a3b8 !important;
+            color: #94a3b8 !important;
+        }
+
+        .btn-cancel:hover {
+            background-color: rgba(148, 163, 184, 0.1) !important;
+            color: #f8fafc !important;
+        }
+        
+        .editing-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        /* Inline Editor Inputs (Dropdowns & Text) */
+        .inline-edit-input {
+            width: 100%;
+            min-width: 100px;
+            max-width: 100%;
+            height: 32px !important; /* Fixed height to match table cells perfectly */
+            padding: 4px 8px !important;
+            font-size: 0.9rem !important;
+            border-radius: 4px !important;
+            background-color: rgba(0, 0, 0, 0.2) !important; /* Subtle background */
+            border: 1px solid transparent !important; /* Remove border to prevent jumping */
+            color: var(--text-main) !important;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        .inline-edit-input:focus {
+            outline: none !important;
+            border: 1px solid transparent !important; /* Keep borderless on focus */
+            background-color: rgba(0, 0, 0, 0.4) !important; /* Slightly darker on focus */
+            box-shadow: none !important; /* Remove shadow to prevent bleeding out of cell */
+        }
+        
+        /* Alerts */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border-left: 4px solid transparent;
+        }
+        
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border-left-color: var(--danger);
+        }
+        
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
+            border-left-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Navigation Bar -->
+    <nav>
+        <div class="container nav-content">
+            <a href="{{ url_for('main.home') }}" class="brand">
+                Expense Optimizer<span>.</span>
+            </a>
+            <ul>
+                <li><a href="{{ url_for('main.home') }}" class="nav-link">Home</a></li>
+                <li><a href="{{ url_for('main.stores') }}" class="nav-link">Stores</a></li>
+                <li><a href="{{ url_for('main.categories') }}" class="nav-link">Categories</a></li>
+                <li><a href="{{ url_for('main.products') }}" class="nav-link">Products</a></li>
+                <li><a href="{{ url_for('main.purchases') }}" class="nav-link">Purchases</a></li>
+                <li><a href="{{ url_for('main.reports') }}" class="nav-link">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            {% block header %}{% endblock %}
+        </header>
+
+        <main>
+            <!-- Flash Message System -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}
+            <!-- Page specific content goes here -->
+            {% endblock %}
+        </main>
+    </div>
+    
+    <div class="container">
+        <footer>
+            <p>&copy; 2026 Personal Grocery & Expense Optimizer</p>
+        </footer>
+    </div>
+    
+</body>
+</html>

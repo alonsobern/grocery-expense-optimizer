@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block header %}
+<h1>Manage Categories</h1>
+<p class="subtitle">Organize your expenses with categories</p>
+{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Add New Category</h2>
+    <!-- Form to add a new category -->
+    <form method="post" action="{{ url_for('main.categories') }}">
+        <div class="form-group">
+            <label for="category_name">Category Name</label>
+            <input type="text" id="category_name" name="category_name" required placeholder="e.g. Produce">
+        </div>
+        <button type="submit" class="btn">Add Category</button>
+    </form>
+</section>
+
+<section class="card" style="margin-top: 2rem;">
+    <h2>Existing Categories</h2>
+    {% if categories %}
+        <div class="table-responsive">
+            <table class="app-table">
+                <thead>
+                    <tr>
+                        <th style="width: auto;">Category Name</th>
+                        <th class="actions text-center" style="width: 100px; min-width: 100px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                        <tr id="category-row-{{ category.id }}">
+                            <td id="category-name-{{ category.id }}">{{ category.name }}</td>
+                            <td class="actions" id="category-actions-{{ category.id }}">
+                                <button id="edit-btn-{{ category.id }}" type="button" class="icon-btn icon-edit" data-category-id="{{ category.id }}" onclick="enableCategoryEdit(this.dataset.categoryId)">
+                                    ✏️
+                                </button>
+                                <form method="POST" action="{{ url_for('main.delete_category_action', category_id=category.id) }}">
+                                    <button type="submit" class="icon-btn icon-delete" onclick="return confirm('Are you sure you want to delete this category?');">
+                                        🗑
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); font-style: italic;">No categories added yet.</p>
+    {% endif %}
+</section>
+
+<!-- Inline Edit Script -->
+<script>
+    let activeCancelHandler = null;
+
+    function enableCategoryEdit(categoryId) {
+        if (activeCancelHandler) activeCancelHandler();
+
+        const row = document.getElementById('category-row-' + categoryId);
+        const nameTd = document.getElementById('category-name-' + categoryId);
+        const actionsTd = document.getElementById('category-actions-' + categoryId);
+        const editBtn = document.getElementById('edit-btn-' + categoryId);
+        const currentName = nameTd.innerText;
+        const tbody = row.closest('tbody');
+        
+        row.classList.add('editing-row');
+        tbody.classList.add('is-editing');
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'inline-edit-input';
+        
+        const container = document.createElement('div');
+        container.className = 'inline-edit-container';
+        container.appendChild(input);
+        
+        editBtn.style.display = 'none';
+        
+        const saveBtn = document.createElement('button');
+        saveBtn.innerText = '✔';
+        saveBtn.className = 'icon-btn icon-save';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerText = '✖';
+        cancelBtn.className = 'icon-btn icon-cancel';
+        
+        const resetUI = () => {
+            nameTd.innerText = currentName;
+            saveBtn.remove();
+            cancelBtn.remove();
+            editBtn.style.display = 'inline-block';
+            row.classList.remove('editing-row');
+            tbody.classList.remove('is-editing');
+            activeCancelHandler = null;
+        };
+        
+        const showError = (msg) => {
+            const existing = container.querySelector('.inline-error');
+            if (existing) existing.remove();
+            
+            const err = document.createElement('div');
+            err.className = 'inline-error';
+            err.innerText = msg;
+            container.appendChild(err);
+            
+            setTimeout(() => err.remove(), 3000);
+        };
+        
+        activeCancelHandler = resetUI;
+        cancelBtn.onclick = resetUI;
+        
+        saveBtn.onclick = async function() {
+            const newName = input.value.trim();
+            if (!newName) {
+                showError("Name is required");
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/categories/update/${categoryId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    nameTd.innerText = data.name;
+                    saveBtn.remove();
+                    cancelBtn.remove();
+                    editBtn.style.display = 'inline-block';
+                    row.classList.remove('editing-row');
+                    tbody.classList.remove('is-editing');
+                    activeCancelHandler = null;
+                } else {
+                    showError(data.message || 'Error updating category');
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Network error");
+            }
+        };
+        
+        nameTd.innerHTML = '';
+        nameTd.appendChild(container);
+        actionsTd.insertBefore(cancelBtn, actionsTd.firstChild);
+        actionsTd.insertBefore(saveBtn, actionsTd.firstChild);
+        input.focus();
+        input.addEventListener("keypress", (e) => { if (e.key === "Enter") saveBtn.click(); });
+    }
+</script>
+{% endblock %}

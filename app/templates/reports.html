@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+
+{% block title %}Spending Reports{% endblock %}
+
+{% block header %}
+<h1>Spending Overview</h1>
+<p class="subtitle">Analyze your grocery expenses</p>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filter Section -->
+<!-- This card contains inputs to filter reports by date range, store, and category.
+     Each input has a unique ID so JavaScript can read the values when "Apply Filters" is clicked. -->
+<section class="card">
+    <h2 style="margin-top: 0; margin-bottom: 1rem;">Filters</h2>
+
+    <!-- Responsive grid: 4 columns on wide screens, stacks on narrow ones -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
+
+        <!-- Start Date -->
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="filterStartDate">Start Date</label>
+            <input type="date" id="filterStartDate">
+        </div>
+
+        <!-- End Date -->
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="filterEndDate">End Date</label>
+            <input type="date" id="filterEndDate">
+        </div>
+
+        <!-- Store Dropdown — populated from the stores table -->
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="filterStore">Store</label>
+            <select id="filterStore">
+                <option value="">All Stores</option>
+                {% for store in all_stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Category Dropdown — populated from the categories table -->
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="filterCategory">Category</label>
+            <select id="filterCategory">
+                <option value="">All Categories</option>
+                {% for cat in all_categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Apply Filters Button -->
+    <div style="margin-top: 1.25rem;">
+        <button class="btn" id="applyFilters" type="button">Apply Filters</button>
+    </div>
+</section>
+
+<h2 class="section-title">Key Performance Indicators</h2>
+<section class="kpi-grid">
+    
+    <!-- Total Spend Card -->
+    <div class="kpi-card">
+        <div class="kpi-label">Total Spend (All Time)</div>
+        <p id="kpiTotalSpend" class="kpi-value" style="color: var(--primary-color);">
+            ${{ "%.2f"|format(total_spend) }}
+        </p>
+    </div>
+
+    <!-- Weekly Spend Card -->
+    <div class="kpi-card">
+        <div class="kpi-label">Last 7 Days</div>
+        <p id="kpiWeeklySpend" class="kpi-value" style="color: var(--accent);">
+            ${{ "%.2f"|format(weekly_spend) }}
+        </p>
+    </div>
+
+    <!-- Monthly Spend Card -->
+    <div class="kpi-card">
+        <div class="kpi-label">Current Month</div>
+        <p id="kpiMonthlySpend" class="kpi-value" style="color: var(--text-main);">
+            ${{ "%.2f"|format(monthly_spend) }}
+        </p>
+    </div>
+
+    <!-- Average Spend Card -->
+    <div class="kpi-card">
+        <div class="kpi-label">Average Purchase</div>
+        <p class="kpi-value" style="color: var(--primary-hover);">
+            ${{ "%.2f"|format(average_spend) }}
+        </p>
+    </div>
+
+</section>
+
+<!-- Top Performers Section -->
+<section class="kpi-grid">
+    
+    <!-- Top Store KPI -->
+    <div class="kpi-card" style="border-left: 4px solid var(--accent); padding-left: 1.5rem; text-align: left;">
+        <div class="kpi-label">Top Store</div>
+        {% if top_store %}
+            <p style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem;">{{ top_store.name }}</p>
+            <p style="color: var(--text-muted);">
+                Total: <span style="color: var(--text-main); font-weight: 600;">${{ "%.2f"|format(top_store.total) }}</span>
+            </p>
+        {% else %}
+            <p style="color: var(--text-muted); font-style: italic;">No data yet</p>
+        {% endif %}
+    </div>
+
+    <!-- Top Category KPI -->
+    <div class="kpi-card" style="border-left: 4px solid var(--primary-color); padding-left: 1.5rem; text-align: left;">
+        <div class="kpi-label">Top Category</div>
+        {% if top_category %}
+            <p style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem;">{{ top_category.name }}</p>
+            <p style="color: var(--text-muted);">
+                Total: <span style="color: var(--text-main); font-weight: 600;">${{ "%.2f"|format(top_category.total) }}</span>
+            </p>
+        {% else %}
+            <p style="color: var(--text-muted); font-style: italic;">No data yet</p>
+        {% endif %}
+    </div>
+
+</section>
+
+<h2 class="section-title">Analytics & Trends</h2>
+<!-- Line Chart: Monthly Spend Trend -->
+<!-- This chart shows how total spending changes over time, month by month.
+     Data flow: app.py groups purchases by year-month using strftime,
+     then passes month_labels (x-axis) and monthly_totals (y-axis) to this template.
+     We use |tojson to convert Python lists into JavaScript arrays. -->
+<section class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem;">Monthly Spend Trend</h3>
+    {% if month_labels %}
+        <!-- Canvas element for the line chart -->
+        <canvas id="monthlyTrendChart" style="max-height: 400px;"></canvas>
+
+        <script>
+            // Get the canvas element for the monthly trend chart
+            const trendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+
+            // Create a line chart and store in a global variable for later updates
+            var trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ month_labels | tojson }},
+                    datasets: [{
+                        label: 'Monthly Spend ($)',
+                        data: {{ monthly_totals | tojson }},
+                        borderColor: 'rgba(139, 92, 246, 1)',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
+        </script>
+    {% else %}
+        <p style="color: var(--text-muted); font-style: italic;">No monthly data available yet.</p>
+    {% endif %}
+</section>
+<div class="dashboard-grid">
+<!-- Bar Chart: Spend by Store -->
+<!-- This section uses Chart.js to display store spending as a bar chart.
+     The Python lists (store_names, store_totals) are converted to JavaScript
+     arrays using Jinja's |tojson filter. -->
+<section class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem;">Store Spending Chart</h3>
+    {% if store_spending %}
+        <!-- The <canvas> element is where Chart.js draws the chart -->
+        <canvas id="storeChart" style="max-height: 400px;"></canvas>
+
+        <script>
+            // Get the canvas element by its ID
+            const storeCtx = document.getElementById('storeChart').getContext('2d');
+
+            // Create a new bar chart and store the instance in a global variable
+            // so the filter script can update the data later without reloading.
+            var storeChart = new Chart(storeCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ store_names | tojson }},
+                    datasets: [{
+                        label: 'Total Spend ($)',
+                        data: {{ store_totals | tojson }},
+                        backgroundColor: 'rgba(37, 99, 235, 0.6)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
+        </script>
+    {% else %}
+        <p style="color: var(--text-muted); font-style: italic;">No data to chart.</p>
+    {% endif %}
+</section>
+<!-- Bar Chart: Spend by Category -->
+<!-- Same approach as the store chart, but using category data instead. -->
+<section class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem;">Category Spending Chart</h3>
+    {% if category_spending %}
+        <!-- Canvas element for Chart.js to draw the category chart -->
+        <canvas id="categoryChart" style="max-height: 400px;"></canvas>
+
+        <script>
+            // Get the canvas element for the category chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+
+            // Create a bar chart and store in a global variable for later updates
+            var categoryChart = new Chart(categoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ category_names | tojson }},
+                    datasets: [{
+                        label: 'Total Spend ($)',
+                        data: {{ category_totals | tojson }},
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
+        </script>
+    {% else %}
+        <p style="color: var(--text-muted); font-style: italic;">No data to chart.</p>
+    {% endif %}
+</section>
+</div>
+
+<h2 class="section-title">Detailed Breakdowns</h2>
+<div class="dashboard-grid">
+<section class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem;">Spend by Store</h3>
+    {% if store_spending %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Store</th>
+                    <th class="text-right">Total Spend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for store in store_spending %}
+                    <tr>
+                        <td><strong>{{ store.name }}</strong></td>
+                        <td class="text-right"><strong>${{ "%.2f"|format(store.total) }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-muted); font-style: italic;">No data available.</p>
+    {% endif %}
+</section>
+<section class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem;">Spend by Category</h3>
+    {% if category_spending %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th class="text-right">Total Spend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in category_spending %}
+                    <tr>
+                        <td><strong>{{ category.name }}</strong></td>
+                        <td class="text-right"><strong>${{ "%.2f"|format(category.total) }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-muted); font-style: italic;">No data available.</p>
+    {% endif %}
+</section>
+</div>
+
+<div style="text-align: center; margin-top: 3rem; margin-bottom: 2rem;">
+    <a href="{{ url_for('main.purchases') }}" class="btn">Log More Purchases</a>
+</div>
+
+<!-- ============================================================
+     FILTER SCRIPT
+     ============================================================ -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const applyBtn = document.getElementById('applyFilters');
+        if (!applyBtn) return;
+
+        applyBtn.addEventListener('click', function() {
+            const startDate  = document.getElementById('filterStartDate').value;
+            const endDate    = document.getElementById('filterEndDate').value;
+            const storeId    = document.getElementById('filterStore').value;
+            const categoryId = document.getElementById('filterCategory').value;
+
+            const params = new URLSearchParams();
+            if (startDate)  params.append('start_date',  startDate);
+            if (endDate)    params.append('end_date',    endDate);
+            if (storeId)    params.append('store_id',    storeId);
+            if (categoryId) params.append('category_id', categoryId);
+
+            fetch('/api/reports?' + params.toString())
+                .then(response => response.json())
+                .then(data => {
+                    // Update KPI numbers
+                    document.getElementById('kpiTotalSpend').textContent   = '$' + data.total_spend.toFixed(2);
+                    document.getElementById('kpiWeeklySpend').textContent  = '$' + data.weekly_spend.toFixed(2);
+                    document.getElementById('kpiMonthlySpend').textContent = '$' + data.monthly_spend.toFixed(2);
+
+                    // Update charts
+                    if (typeof storeChart !== 'undefined') {
+                        storeChart.data.labels = data.store_names;
+                        storeChart.data.datasets[0].data = data.store_totals;
+                        storeChart.update();
+                    }
+                    if (typeof categoryChart !== 'undefined') {
+                        categoryChart.data.labels = data.category_names;
+                        categoryChart.data.datasets[0].data = data.category_totals;
+                        categoryChart.update();
+                    }
+                    if (typeof trendChart !== 'undefined') {
+                        trendChart.data.labels = data.month_labels;
+                        trendChart.data.datasets[0].data = data.monthly_totals;
+                        trendChart.update();
+                    }
+                })
+                .catch(error => console.error('Error fetching filtered report data:', error));
+        });
+    });
+</script>
+
+{% endblock %}

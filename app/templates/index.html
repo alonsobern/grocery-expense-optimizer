@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block header %}
+<h1>{{ title }}</h1>
+<p class="subtitle">Welcome to your personal finance dashboard.</p>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="kpi-grid">
+        
+        <!-- Total Spend Card -->
+        <div class="kpi-card">
+            <div class="kpi-label">Total Spend</div>
+            <p class="kpi-value" style="color: var(--primary-color);">
+                ${{ "%.2f"|format(total_spend) }}
+            </p>
+        </div>
+
+        <!-- Monthly Spend Card -->
+        <div class="kpi-card">
+            <div class="kpi-label">Current Month</div>
+            <p class="kpi-value" style="color: var(--text-main);">
+                ${{ "%.2f"|format(monthly_spend) }}
+            </p>
+        </div>
+
+        <!-- Weekly Spend Card -->
+        <div class="kpi-card">
+            <div class="kpi-label">Last 7 Days</div>
+            <p class="kpi-value" style="color: var(--accent);">
+                ${{ "%.2f"|format(weekly_spend) }}
+            </p>
+        </div>
+
+    </div>
+
+    <div style="text-align: center;">
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+            Ready to track more expenses?
+        </p>
+        <a href="{{ url_for('main.purchases') }}" class="btn">Log New Purchase</a>
+    </div>
+</div>
+{% endblock %}
