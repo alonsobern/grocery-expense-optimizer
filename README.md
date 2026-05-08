@@ -2,8 +2,9 @@
 
 A professional, full-stack Flask application designed to track grocery expenses, manage inventory, and provide actionable financial insights through a modern analytics dashboard.
 
-[KPI Dashboard](https://drive.google.com/file/d/1q7UMnhD5hUFBpPxcbDrGIjJOGl4iDf7I/view?usp=drive_link)
-[Analytics & Trends](https://drive.google.com/file/d/1fXYyc3E6smTQ3lx-R-0xio7smt0_NRXD/view?usp=drive_link)
+[KPI Dashboard](https://drive.google.com/file/d/1q7UMnhD5hUFBpPxcbDrGIjJOGl4iDf7I/view?usp=drive_link){:target="\_blank"}
+
+[Analytics & Trends](https://drive.google.com/file/d/1fXYyc3E6smTQ3lx-R-0xio7smt0_NRXD/view?usp=drive_link){:target="\_blank"}
 
 ## 🚀 Features
 
