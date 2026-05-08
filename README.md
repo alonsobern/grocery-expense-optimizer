@@ -2,7 +2,8 @@
 
 A professional, full-stack Flask application designed to track grocery expenses, manage inventory, and provide actionable financial insights through a modern analytics dashboard.
 
-![Dashboard Preview](https://via.placeholder.com/800x450.png?text=Grocery+Analytics+Dashboard+Preview)
+![KPI Dashboard ](https://drive.google.com/file/d/1q7UMnhD5hUFBpPxcbDrGIjJOGl4iDf7I/view?usp=drive_link)
+![Analytics & Trends ](https://drive.google.com/file/d/1fXYyc3E6smTQ3lx-R-0xio7smt0_NRXD/view?usp=drive_link)
 
 ## 🚀 Features
 
@@ -44,8 +45,8 @@ A professional, full-stack Flask application designed to track grocery expenses,
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/alonsobern/grocery-optimizer.git
-   cd grocery-optimizer
+   git clone https://github.com/alonsobern/grocery-expense-optimizer.git
+   cd grocery-expense-optimizer
    ```
 
 2. **Create a virtual environment**:
