@@ -142,8 +142,7 @@ This project is configured for immediate deployment. The `requirements.txt` is s
 │   ├── schema.sql               # Database table definitions & constraints
 │   └── grocery.db               # SQLite Database (Auto-generated on launch)
 ├── docs/                        
-│   ├── development_chronology.md   # AI Pair-Programming workflow logs
-│   └── conversation_transcript.jsonl # Raw LLM execution transcripts
+│   └── development_chronology.md   # AI Pair-Programming workflow logs
 ├── requirements.txt             # Production dependencies (Flask, Gunicorn)
 ├── run.py                       # Local development entry point
 └── seed_data.py                 # Standalone manual synthetic data generator
@@ -156,7 +155,6 @@ This project is configured for immediate deployment. The `requirements.txt` is s
 This application was meticulously built utilizing an advanced agentic AI pair-programming workflow. The entire step-by-step evolution of the codebase is documented for transparency and educational review:
 
 *   **[AI Collaborative Chronology](docs/development_chronology.md)**: A detailed breakdown of the 57 unique development requests, architectural shifts (e.g., migrating to Application Factories), and the implementation of the composite database validation.
-*   **[Raw Conversation Transcript](docs/conversation_transcript.jsonl)**: The direct execution transcript showing the raw model prompts, tool actions, reasoning processes, and codebase modifications.
 
 ## 📄 License
 
