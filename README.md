@@ -94,6 +94,14 @@ Upon first startup in a new environment, the application will automatically seed
 - **Stores**: Whole Foods, Trader Joe's, Costco, etc.
 - **History**: 150+ purchases spread over the last 6 months.
 
+## 🤝 Collaborative Development & AI Pair-Programming History
+
+This application was built utilizing an advanced agentic AI pair-programming workflow. The entire step-by-step evolution of the codebase—from early dynamic AJAX graph implementations, modular Application Factory refactoring, inline editor engines, up to strict composite database validation and Render zero-config setup—is fully documented:
+
+*   **[AI Collaborative Chronology](docs/development_chronology.md)**: A detailed chronological breakdown of all 57 unique development requests, decisions, and system architectures.
+*   **[Raw Conversation Transcript (JSONL)](docs/conversation_transcript.jsonl)**: The direct execution transcript showing the raw model prompts, tool actions, reasoning processes, and codebase modifications.
+
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
